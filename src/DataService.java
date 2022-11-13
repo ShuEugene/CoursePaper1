@@ -1,20 +1,34 @@
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+
 public class DataService {
+
+    static private String printTitle;
+    static BufferedReader bufferReader = new BufferedReader(new InputStreamReader(System.in));
+
+    enum ServiceModes {SET_VALUE, INCREASE, DECREASE, PERCENTAGE, CORRECT;}
+
+    enum PrintModes {SIMPLE_LIST_PM, NUMBERED_LIST_PM;}
+
+    static final String[] DEL_RECS_ACTIONS = {"Удалить все найденные записи", "Удалить все записи, кроме одной", "Удалить одну запись"};
 
     static final String TYPE_MISMATCH_MESS = "Тип не соответствует требуемому.";
     static final String NULL_STRING_MESS = "Полученная строка пуста.";
     static final String NULL_OBJECT_REQUEST_MESS = "Запрос по нулевому объекту.";
+    static final String NULL_PRINT_LIST_MESS = "\nСписок печати пуст.";
     static final String INCORRECT_INITIAL_PARAMS_MESS = "Неприемлемые параметры инициализации.";
-    static final String INCORRECT_COMPARE_PARAMS_MESS = "Неприемлемые параметр сопоставления.";
+    static final String INCORRECT_ACTION_MESS = "Выбранного действия нет среди приемлемых.";
+    static final String INCORRECT_COMPARE_PARAMS_MESS = "Неприемлемые параметры сопоставления.";
     static final String INCORRECT_SELECTED_MODE_MESS = "Выбранный режим не подходит.";
-    static final String NO_MATCH_FOUNDS_MESS = "\nСовпадения отсутствуют.";
+    static final String NO_MATCHES_FOUND_MESS = "\nИскомые совпадения отсутствуют.";
+    static final String ONE_MATCH_FOUND_MESS = "\nНайдено одно совпадение.";
+    static final String MULTIPLE_MATCH_FOUND_MESS = "\nНайдено несколько совпадений.";
+    static final String NO_RECS_EDITED_MESS = "\nНе обработано ни одной записи.";
+    static final String REC_EDITED_MESS = "\nЗапись обработана.";
+    static final String SEVERAL_RECS_EDITED_MESS = "\nОбработано несколько записей.";
+    static final String WELL_DONE_MESS = "\nОперация выполнена успешно.";
 
-    enum RequestMode {MIN_SALARY, MAX_SALARY, LESS_SALARY, BIG_SALARY, FULL_NAME_LIST, SALARY_LIST, CORRECT_SALARY_LIST}
-
-    enum ServiceMode {INCREASE, DECREASE, PERCENTAGE, CORRECT}
-
-    static private String printTitle;
-
-//  *********
 
     static String getPrintTitle() {
         return printTitle;
@@ -24,171 +38,103 @@ public class DataService {
         DataService.printTitle = printTitle;
     }
 
-    static String getPrintTitle(RequestMode requestMode) {
-        setPrintTitle(requestMode);
-        return printTitle;
-    }
-
-    static String getPrintTitle(RequestMode requestMode, Department department) {
-        setPrintTitle(requestMode, department);
-        return printTitle;
-    }
-
-    static void setPrintTitle(RequestMode requestMode) {
+    static void setPrintTitle(EmployeeBook.RequestModes requestMode) {
         switch (requestMode) {
-            case FULL_NAME_LIST:
-                printTitle = "\nПолные имена сотрудников:";
+            case ALL_INFO_RM:
+                printTitle = EmployeeBook.ALL_EMPLS_INFO_PT;
                 break;
-            case SALARY_LIST:
-                printTitle = "\nПеречень заработных плат сотрудников:";
+            case PERS_CARDS_RM:
+                printTitle = EmployeeBook.PERS_CARDS_PT;
                 break;
-            case CORRECT_SALARY_LIST:
-                printTitle = "\nРазмеры заработных плат сотрудников после внесения изменений:";
+            case FIO_MATCH_FOUND_RM:
+                printTitle = EmployeeBook.EMPL_MATCH_FOUND_MESS;
+                printTitle = printTitle.replace(" с указанными данными ",
+                        String.format(" %s ", EmployeeBook.getOperEmpl().getFullName()));
+                return;
+            case DEPS_EMPLS_RM:
+                printTitle = EmployeeBook.DEPS_EMPLS_INFO_PT;
+                return;
+            case SALS_SUM_RM:
+                printTitle = EmployeeBook.SALARIES_SUM_PT;
                 break;
-            case MIN_SALARY:
-                printTitle = "\nСотрудники, получающие наименьшую заработную плату:";
+            case AVER_SAL_RM:
+                printTitle = EmployeeBook.AVERAGE_SALARY_PT;
                 break;
-            case MAX_SALARY:
-                printTitle = "\nСотрудники, получающие наибольшую заработную плату:";
+            case SALARIES_RM:
+                printTitle = EmployeeBook.SALARIES_PT;
                 break;
-            case LESS_SALARY:
-                printTitle = "\nСотрудники, получающие заработную плату меньше заданной:";
+            case CORRECT_SALS_RM:
+                printTitle = EmployeeBook.CORRECT_SALS_PT;
                 break;
-            case BIG_SALARY:
-                printTitle = "\nСотрудники, получающие наибольшую заработную плату больше заданной:";
+            case MIN_SALS_RM:
+                printTitle = EmployeeBook.MIN_SALS_PT;
+                break;
+            case MAX_SALS_RM:
+                printTitle = EmployeeBook.MAX_SALS_PT;
+                break;
+            case LESS_SALS_RM:
+                printTitle = String.format("%s %.2f %s", EmployeeBook.LESS_SALS_PT, EmployeeBook.getTargetSalary(), EmployeeBook.currencyType);
+                break;
+            case BIG_SALS_RM:
+                printTitle = String.format("%s %.2f %s", EmployeeBook.BIG_SALS_PT, EmployeeBook.getTargetSalary(), EmployeeBook.currencyType);
                 break;
             default:
                 throw new IllegalArgumentException(DataService.INCORRECT_SELECTED_MODE_MESS);
         }
-    }
-
-    static void setPrintTitle(RequestMode requestMode, Department department) {
+        printTitle += EmployeeBook.isByDepartment() ? String.format(" в Подразделении (%s)", EmployeeBook.getRequestedDepartment())
+                : " в Компании";
         switch (requestMode) {
-            case FULL_NAME_LIST:
-                printTitle = String.format("\nПолные имена сотрудников Подразделения «%s»:", department.getName());
+            case ALL_INFO_RM:
+            case PERS_CARDS_RM:
+            case CORRECT_SALS_RM:
+                if (EmployeeBook.isByDepartment()) {
+                    printTitle = printTitle.replace(" в Подразделении", " Подразделения");
+                } else {
+                    printTitle = printTitle.replace(" в", "");
+                }
                 break;
-            case SALARY_LIST:
-                printTitle = String.format("\nПеречень заработных плат сотрудников Подразделения «%s»:", department.getName());
+            case LESS_SALS_RM:
+            case BIG_SALS_RM:
+                if (EmployeeBook.isByDepartment()) {
+                    printTitle = printTitle.replace(" в Подразделении ", ", по Подразделению ");
+                } else {
+                    printTitle = printTitle.replace(" в Компании", "");
+                }
                 break;
-            case CORRECT_SALARY_LIST:
-                printTitle = String.format("\nРазмеры заработных плат сотрудников Подразделения «%s» после внесения изменений:", department.getName());
-                break;
-            case MIN_SALARY:
-                printTitle = String.format("\nСотрудники Подразделения «%s», получающие наименьшую заработную плату:", department.getName());
-                break;
-            case MAX_SALARY:
-                printTitle = String.format("\nСотрудники Подразделения «%s», получающие наибольшую заработную плату:", department.getName());
-                break;
-            case LESS_SALARY:
-                printTitle = String.format("\nСотрудники Подразделения «%s», получающие заработную плату меньше заданной:", department.getName());
-                break;
-            case BIG_SALARY:
-                printTitle = String.format("\nСотрудники Подразделения «%s», получающие заработную плату больше заданной:", department.getName());
-                break;
-            default:
-                throw new IllegalArgumentException(DataService.INCORRECT_SELECTED_MODE_MESS);
         }
+        printTitle += ':';
     }
 
-//  *********
 
-    static String[] getItemsList(Object[] o, RequestMode requestMode) {
-        if (parameterIsCorrect(o)) {
-            String[] itemsList = new String[o.length];
-            switch (requestMode) {
-                case FULL_NAME_LIST:
-                case MIN_SALARY:
-                case MAX_SALARY:
-                case LESS_SALARY:
-                case BIG_SALARY:
-                    if (EmployeeBook.isEmployees(o)) {
-                        Employee[] employees = (Employee[]) o;
-                        int itemsCount = -1;
-                        for (Employee curEmpl :
-                                employees) {
-                            if (parameterIsCorrect(curEmpl)) {
-                                itemsList[++itemsCount] = curEmpl.getFullName();
-                            }
-                        }
-                    } else throw new IllegalArgumentException(TYPE_MISMATCH_MESS);
-                    break;
-                case SALARY_LIST:
-                case CORRECT_SALARY_LIST:
-                    if (EmployeeBook.isEmployees(o)) {
-                        Employee[] employees = (Employee[]) o;
-                        int itemsCount = -1;
-                        for (Employee curEmpl :
-                                employees) {
-                            if (parameterIsCorrect(curEmpl)) {
-                                itemsList[++itemsCount] = String.format("%s - %.2f",
-                                        curEmpl.getFullName(), curEmpl.getSalary());
-                            }
-                        }
-                    } else throw new IllegalArgumentException(TYPE_MISMATCH_MESS);
-                    break;
-                default:
-                    throw new IllegalArgumentException(INCORRECT_SELECTED_MODE_MESS);
-            }
-            return itemsList;
-        } else throw new IllegalArgumentException(NULL_OBJECT_REQUEST_MESS);
-    }
-
-    //  Убить, если не использую !«
-    static String[] getItemsList(Object[] o, RequestMode requestMode, Department department) {
-        if (parameterIsCorrect(o)) {
-            String[] itemsList = new String[o.length - nullFounds(o)];
-            if (EmployeeBook.isEmployees(o)) {
-                Employee[] employees = (Employee[]) o;
-                int itemsCount = -1;
-                for (Employee curEmpl :
-                        employees) {
-                    if (parameterIsCorrect(curEmpl) && curEmpl.inThisDepartment(department)) {
-                        switch (requestMode) {
-                            case FULL_NAME_LIST:
-                            case MIN_SALARY:
-                            case MAX_SALARY:
-                                itemsList[++itemsCount] = String.format("%s (ID: %d)",
-                                        curEmpl.getFullName(), curEmpl.getId());
-                                break;
-                            case SALARY_LIST:
-                            case CORRECT_SALARY_LIST:
-                                itemsList[++itemsCount] = String.format("%s (ID: %d) - %.2f",
-                                        curEmpl.getFullName(), curEmpl.getId(), curEmpl.getSalary());
-                                break;
-                        }
-                    }
-                }
-            } else throw new IllegalArgumentException(TYPE_MISMATCH_MESS);
-            return itemsList;
-        } else throw new IllegalArgumentException(NULL_OBJECT_REQUEST_MESS);
-    }
-
-    static int nullFounds(Object[] array, int startIndex) {
-        if (parameterIsCorrect(array)) {
-            int numberOfNullObjects = 0;
-            if (startIndex >= 0 && startIndex < array.length) {
-                for (int i = startIndex; i < array.length; i++) {
-                    if (array[i] == null) {
-                        numberOfNullObjects++;
-                    }
-                }
-                return numberOfNullObjects;
-            } else
-                throw new IllegalArgumentException("Начальный индекс должен быть меньше длинны рассматриваемого массива.");
-        } else throw new IllegalArgumentException(NULL_OBJECT_REQUEST_MESS);
-    }
-//  »!
-
-    static boolean parameterIsCorrect(float parameter) {
-        return parameter > 0;
-    }
-
-    static boolean parameterIsCorrect(String parameter) {
+    static boolean paramIsCorrect(String parameter) {
         return (parameter != null && !parameter.isEmpty() && !parameter.isBlank());
     }
 
-    static boolean parameterIsCorrect(Object parameter) {
-        return parameter != null;
+    static boolean paramIsCorrect(Object[] array) {
+        return array != null && array.length > 0;
+    }
+
+    static int getFirstNullRecIndex(Object[] objects) {
+        if (!paramIsCorrect(objects)) {
+            throw new IllegalArgumentException(NULL_OBJECT_REQUEST_MESS);
+        }
+        int foundStatus = -1;
+        for (int curElIndex = 0; curElIndex < objects.length; curElIndex++) {
+            if (objects[curElIndex] == null) return curElIndex;
+        }
+        return foundStatus;
+    }
+
+    static int nullRecordsFound(Object[] array) {
+        int numberOfNullObjects = 0;
+        if (paramIsCorrect(array)) {
+            for (Object currEl : array) {
+                if (currEl == null) {
+                    numberOfNullObjects++;
+                }
+            }
+        }
+        return numberOfNullObjects;
     }
 
     static int lastNotNullObjectIndex(Object[] o) {
@@ -201,59 +147,204 @@ public class DataService {
         return lastNotNullObjectIndex;
     }
 
-    static int nullFounds(Object[] array) {
-        int numberOfNullObjects = 0;
-        if (parameterIsCorrect(array)) {
-            for (Object currEl : array) {
-                if (currEl == null) {
-                    numberOfNullObjects++;
+    static int getValidObjectsNumber(Object[] objects) {
+        if (objects == null) {
+            throw new IllegalArgumentException(NULL_OBJECT_REQUEST_MESS);
+        }
+        int validObjectsNumber = objects.length;
+        for (Object curObj :
+                objects) {
+            if (curObj == null) --validObjectsNumber;
+        }
+        return validObjectsNumber;
+    }
+
+    static String[] getValidObjects(String[] records) {
+        int validObjectsNumber = getValidObjectsNumber(records);
+        if (validObjectsNumber <= 0) return null;
+        String[] validObjects = new String[validObjectsNumber];
+        int validObjectIndex = -1;
+        for (String curObj : records) {
+            if (curObj != null) validObjects[++validObjectIndex] = curObj;
+        }
+        return validObjects;
+    }
+
+    static Employee[] getValidObjects(Employee[] employees) {
+        int validObjectsNumber = getValidObjectsNumber(employees);
+        if (validObjectsNumber <= 0) return null;
+        Employee[] validObjects = new Employee[validObjectsNumber];
+        int validObjectIndex = -1;
+        for (Employee curObj : employees) {
+            if (curObj != null) validObjects[++validObjectIndex] = curObj;
+        }
+        return validObjects;
+    }
+
+    static boolean isOutOfRange(int number, int minValue, int maxValue) {
+        return (number <= minValue - 1 || number >= maxValue + 1);
+    }
+
+    static int getUserChoose() throws IOException {
+        String userChooseStr = bufferReader.readLine();
+        if (userChooseStr.equals("")) return 0;
+        int userChoose;
+        try {
+            userChoose = Integer.parseInt(userChooseStr);
+        } catch (NumberFormatException e) {
+            return -1;
+        }
+        return userChoose;
+    }
+
+    static byte whatShouldBeDone() throws IOException {
+        System.out.printf("\nЧто следует предпринять?" +
+                "\n(\"1\"...\"%d\" - для выбора действия либо \"Enter\" - для прекращения операции)\n", DEL_RECS_ACTIONS.length);
+        printList(DEL_RECS_ACTIONS, PrintModes.NUMBERED_LIST_PM);
+        String actNumberStr;
+        byte actNumber = 0;
+        do {
+            actNumberStr = bufferReader.readLine();
+            if (actNumberStr.equals("")) return 0;
+            try {
+                actNumber = Byte.parseByte(actNumberStr);
+            } catch (NumberFormatException e) {
+                System.out.println(INCORRECT_ACTION_MESS);
+                continue;
+            }
+            if (isOutOfRange(actNumber, 0, DEL_RECS_ACTIONS.length)) {
+                System.out.println(INCORRECT_ACTION_MESS);
+            }
+        } while (isOutOfRange(actNumber, 0, DEL_RECS_ACTIONS.length));
+        return actNumber;
+    }
+
+    static int resetRecords(Object[] editableArray, Object requiredRecord) {
+        if (!paramIsCorrect(editableArray) || requiredRecord == null) {
+            throw new IllegalArgumentException(NULL_OBJECT_REQUEST_MESS);
+        }
+        int editedRecCount = 0;
+        for (int recIndex = 0; recIndex < editableArray.length; ++recIndex) {
+            if (editableArray[recIndex] == requiredRecord) {
+                editableArray[recIndex] = null;
+                ++editedRecCount;
+            }
+        }
+        getEditRecsDoneReport(editedRecCount);
+        return editedRecCount;
+    }
+
+    static int resetRecords(Object[] editableArray, int pointer, ServiceModes serviceMode) {
+        if (!paramIsCorrect(editableArray)) {
+            throw new IllegalArgumentException(NULL_OBJECT_REQUEST_MESS);
+        }
+        int editedRecCount = 0;
+        if (editableArray instanceof Employee[]) {
+            Employee[] employees = (Employee[]) editableArray;
+            for (int emplIndex = 0; emplIndex < employees.length; ++emplIndex) {
+                switch (serviceMode) {
+                    case CORRECT:
+                        if (employees[emplIndex].getId() != pointer) {
+                            employees[emplIndex] = null;
+                            ++editedRecCount;
+                        }
+                        break;
+                    case DECREASE:
+                        if (employees[emplIndex].getId() == pointer) {
+                            employees[emplIndex] = null;
+                            ++editedRecCount;
+                        }
+                        break;
+                    default:
+                        throw new IllegalArgumentException(INCORRECT_SELECTED_MODE_MESS);
+                }
+                if (serviceMode == ServiceModes.DECREASE && editedRecCount > 0) break;
+            }
+        } else throw new IllegalArgumentException(TYPE_MISMATCH_MESS);
+        getEditRecsDoneReport(editedRecCount);
+        return editedRecCount;
+    }
+
+    static int resetRecords(Object[] editableArray, Object[] requiredRecords) {
+        if (!paramIsCorrect(editableArray) || !paramIsCorrect(requiredRecords)) {
+            throw new IllegalArgumentException(NULL_OBJECT_REQUEST_MESS);
+        }
+        int editedRecCount = 0;
+        for (Object reqRec : requiredRecords) {
+            for (int elIndex = 0; elIndex < editableArray.length; elIndex++) {
+                if (editableArray[elIndex] == reqRec) {
+                    editableArray[elIndex] = null;
+                    ++editedRecCount;
                 }
             }
         }
-        return numberOfNullObjects;
+        getEditRecsDoneReport(editedRecCount);
+        return editedRecCount;
     }
 
-    static boolean arrayIsEmpty(Object[] objects) {
-        if (!parameterIsCorrect(objects)) {
-            throw new IllegalArgumentException(NULL_OBJECT_REQUEST_MESS);
+    static void noMatchFoundsReport(Object[] objects) {
+        if (!paramIsCorrect(objects) || objects.length < 1) {
+            System.out.println(NO_MATCHES_FOUND_MESS);
         }
-        return objects.length - nullFounds(objects) < 1;
     }
 
-    static boolean noMatchFoundsReport(Employee[] employees) {
-        if (arrayIsEmpty(employees)) {
-            printTitle = NO_MATCH_FOUNDS_MESS;
-            System.out.println(DataService.getPrintTitle());
-            return true;
-        }
-        return false;
-    }
-
-    static boolean exceptionalCaseReport() {
-        if (!parameterIsCorrect(printTitle)) {
+    static void exceptionalCaseReport() {
+        String isDoneMess = EmployeeBook.getIsDoneMess();
+        if (!paramIsCorrect(isDoneMess)) {
             throw new IllegalArgumentException(DataService.NULL_STRING_MESS);
         }
-        switch (printTitle) {
+        switch (isDoneMess) {
             case EmployeeBook.EQUAL_SALARY_MESS:
             case EmployeeBook.EQUAL_SALARIES_IN_THIS_DEP_MESS:
+                String message = isDoneMess.replace(".", String.format(" - %s %s.", EmployeeBook.getTargetSalary(), EmployeeBook.currencyType));
+                System.out.println(message);
+                return;
             case EmployeeBook.NULL_SALARIES_MESS:
-                System.out.println(DataService.getPrintTitle());
-                return true;
+            case EmployeeBook.NULL_SALARIES_DEP_MESS:
+                System.out.println(isDoneMess);
         }
-        return false;
+    }
+
+    static void getEditRecsDoneReport(int editedRecCount) {
+        String isDoneMess;
+        if (editedRecCount < 1) {
+            isDoneMess = NO_RECS_EDITED_MESS.replace("обработано", "обнулено");
+            EmployeeBook.setIsDoneMess(NO_RECS_EDITED_MESS);
+        } else if (editedRecCount > 1) {
+            isDoneMess = SEVERAL_RECS_EDITED_MESS.replace("Обработано", "Обнулено").
+                    replace("несколько", "несколько (" + editedRecCount + ")");
+            EmployeeBook.setIsDoneMess(SEVERAL_RECS_EDITED_MESS);
+        } else {
+            isDoneMess = REC_EDITED_MESS.replace("обработана", "обнулена");
+            EmployeeBook.setIsDoneMess(WELL_DONE_MESS);
+        }
+        System.out.println(isDoneMess);
+    }
+
+    static void printList(Object[] objects, PrintModes printMode) {
+        if (!DataService.paramIsCorrect(objects)) {
+            throw new IllegalArgumentException(DataService.NULL_OBJECT_REQUEST_MESS);
+        }
+        String listItem = "", itemSeparator = ";";
+        for (int objectIndex = 0; objectIndex < objects.length; objectIndex++) {
+            if (objects[objectIndex] != null) {
+                if (objectIndex == DataService.lastNotNullObjectIndex(objects)) {
+                    itemSeparator = ".";
+                }
+                switch (printMode) {
+                    case SIMPLE_LIST_PM:
+                        listItem = String.format("%s%s", objects[objectIndex], itemSeparator);
+                        break;
+                    case NUMBERED_LIST_PM:
+                        listItem = String.format("%d. %s%s", objectIndex + 1, objects[objectIndex], itemSeparator);
+                        break;
+                }
+                System.out.println(listItem);
+            }
+        }
     }
 
     static void printList(Object[] objects) {
-        if (DataService.parameterIsCorrect(objects)) {
-            String itemSeparator = ";";
-            for (int i = 0; i < objects.length; i++) {
-                if (DataService.parameterIsCorrect(objects[i])) {
-                    if (i == DataService.lastNotNullObjectIndex(objects)) {
-                        itemSeparator = ".";
-                    }
-                    System.out.println(objects[i] + itemSeparator);
-                }
-            }
-        } else throw new IllegalArgumentException(DataService.NULL_OBJECT_REQUEST_MESS);
+        printList(objects, PrintModes.SIMPLE_LIST_PM);
     }
 }

@@ -5,38 +5,22 @@ public class Department {
     private int id;
     private String name;
 
-//  *********
 
     Department(String name) {
-        if (DataService.parameterIsCorrect(name)) {
-            this.id = Departments.getDepartmentsCount(DataService.ServiceMode.INCREASE);
+        if (DataService.paramIsCorrect(name)) {
+            this.id = Departments.getDepartmentsCount(DataService.ServiceModes.INCREASE);
             this.name = name;
         } else throw new IllegalArgumentException(DataService.NULL_STRING_MESS);
     }
 
-//  *********
-
-//  Убить, если не использую !«
-    public int getId() {
-        return id;
-    }
-
-    public void setId(int id) {
-        this.id = id;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-//  »!
 
     public String getName() {
-        return name;
+        return "«" + name + "»";
     }
 
     @Override
     public String toString() {
-        return String.format("Подразделение: %s (ID: %d)", name, id);
+        return String.format("%s (ID: %d)", getName(), id);
     }
 
     @Override
